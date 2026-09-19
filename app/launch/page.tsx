@@ -7,6 +7,7 @@ import { CheckIcon, RocketIcon, TwitchIcon, UploadIcon, WalletIcon } from '@/com
 import { creators } from '@/lib/data';
 
 const ROBINHOOD_CHAIN_ID = '0x1237';
+const DEFAULT_LOGO_URI = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logotwitch-RVMQJk7F2Shbt9HBAVjuK0wVsmheoL.png';
 const PONS_FACTORY = '0xA5aAb3F0c6EeadF30Ef1D3Eb997108E976351feB' as `0x${string}`;
 const ROBINHOOD_CHAIN = {
   chainId: ROBINHOOD_CHAIN_ID,
@@ -64,7 +65,7 @@ export default function LaunchPage() {
       const launchConfigCount = BigInt(await ethereum.request({ method: 'eth_call', params: [{ to: PONS_FACTORY, data: encodeFunctionData({ abi: PONS_ABI, functionName: 'launchConfigCount' }) }, 'latest'] }) as string);
       const dexConfigCount = BigInt(await ethereum.request({ method: 'eth_call', params: [{ to: PONS_FACTORY, data: encodeFunctionData({ abi: PONS_ABI, functionName: 'dexConfigCount' }) }, 'latest'] }) as string);
       if (launchConfigCount === BigInt(0) || dexConfigCount === BigInt(0)) throw new Error('Pons has no active launch configuration yet.');
-      const data = encodeFunctionData({ abi: PONS_ABI, functionName: 'launchToken', args: [{ name, symbol: ticker, logo: image, description, socials: { twitter: x, telegram: '', discord: '', website, farcaster: '' }, feeWallet: wallet }, BigInt(0), BigInt(0), `0x${crypto.getRandomValues(new Uint8Array(32)).reduce((s, b) => s + b.toString(16).padStart(2, '0'), '')}`] });
+      const data = encodeFunctionData({ abi: PONS_ABI, functionName: 'launchToken', args: [{ name: name.trim(), symbol: ticker.trim(), logo: DEFAULT_LOGO_URI, description: description.trim().slice(0, 500), socials: { twitter: x.trim(), telegram: '', discord: '', website: website.trim(), farcaster: '' }, feeWallet: wallet }, BigInt(0), BigInt(0), `0x${crypto.getRandomValues(new Uint8Array(32)).reduce((s, b) => s + b.toString(16).padStart(2, '0'), '')}`] });
       const hash = await ethereum.request({ method: 'eth_sendTransaction', params: [{ from: wallet, to: PONS_FACTORY, data, value: launchFee }] }) as string;
       setTxHash(hash);
       setDone(true);
@@ -79,7 +80,7 @@ export default function LaunchPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => setImage(String(reader.result));
+    reader.onload = () => setImage(URL.createObjectURL(file));
     reader.readAsDataURL(file);
   };
 
@@ -89,7 +90,7 @@ export default function LaunchPage() {
       <Reveal><form className="launch-form" onSubmit={(e)=>{e.preventDefault();void connectAndLaunch()}}>
         <section className="form-section"><div className="form-section-title"><span>1</span><div><strong>Who gets linked?</strong><small>Twitch creator</small></div></div><div className="creator-chips">{creators.slice(0,5).map(c=><button type="button" key={c.handle} className={`creator-chip ${creator===c.handle?'selected':''}`} onClick={()=>setCreator(c.handle)}><div className="avatar tiny">{c.initials}</div><div><strong>{c.name}</strong><span>@{c.handle}</span></div>{creator===c.handle&&<CheckIcon size={15}/>}</button>)}</div><label className="field"><span>Or enter a Twitch handle</span><div className="field-input with-icon"><TwitchIcon size={17}/><input value={creator} onChange={e=>setCreator(e.target.value.replace('@',''))} placeholder="creatorhandle"/></div></label></section>
 
-        <section className="form-section"><div className="form-section-title"><span>2</span><div><strong>The token</strong><small>Name, ticker, story</small></div></div><div className="form-row"><label className="field grow"><span>Name</span><input value={name} onChange={e=>setName(e.target.value)} placeholder="Creator Coin" required/></label><label className="field ticker-field"><span>Ticker</span><div className="ticker-input"><b>$</b><input value={ticker} onChange={e=>setTicker(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,7))} placeholder="COIN" required/></div></label></div><label className="field"><span>Description <em>optional</em></span><textarea value={description} onChange={e=>setDescription(e.target.value)} rows={4}/></label><label className="upload-zone"><input type="file" accept="image/*" onChange={upload}/>{image?<img src={image} alt="Token preview"/>:<><div className="upload-icon"><UploadIcon/></div><strong>Drop token art or click to choose</strong><span>PNG, JPEG or WebP · square works best</span></>}</label><div className="form-row"><label className="field grow"><span>Website <em>optional</em></span><input value={website} onChange={e=>setWebsite(e.target.value)} placeholder="https://"/></label><label className="field grow"><span>X <em>optional</em></span><input value={x} onChange={e=>setX(e.target.value)} placeholder="https://x.com/..."/></label></div></section>
+        <section className="form-section"><div className="form-section-title"><span>2</span><div><strong>The token</strong><small>Name, ticker, story</small></div></div><div className="form-row"><label className="field grow"><span>Name</span><input value={name} onChange={e=>setName(e.target.value)} placeholder="Creator Coin" required/></label><label className="field ticker-field"><span>Ticker</span><div className="ticker-input"><b>$</b><input value={ticker} onChange={e=>setTicker(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,7))} placeholder="COIN" required/></div></label></div><label className="field"><span>Description <em>optional</em></span><textarea value={description} onChange={e=>setDescription(e.target.value)} rows={4}/></label><label className="upload-zone"><input type="file" accept="image/*" onChange={upload}/>{image?<img src={image} alt="Token preview"/>:<><div className="upload-icon"><UploadIcon/></div><strong>Drop token art or click to choose</strong><span>PNG, JPEG or WebP · preview only; launches use the hosted logo</span></>}</label><div className="form-row"><label className="field grow"><span>Website <em>optional</em></span><input value={website} onChange={e=>setWebsite(e.target.value)} placeholder="https://"/></label><label className="field grow"><span>X <em>optional</em></span><input value={x} onChange={e=>setX(e.target.value)} placeholder="https://x.com/..."/></label></div></section>
 
         <section className="form-section"><div className="form-section-title"><span>3</span><div><strong>Your first buy</strong><small>Keep it free</small></div></div><div className="buy-options">{['None'].map(v=><button type="button" key={v} className={firstBuy===v?'selected':''} onClick={()=>setFirstBuy(v)}>{v}</button>)}</div></section>
 
