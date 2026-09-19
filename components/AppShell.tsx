@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Analytics } from '@/components/AnalyticsDummy';
 import { tokens, creators } from '@/lib/data';
-import { ArrowIcon, ChartIcon, CloseIcon, CoinsIcon, DocsIcon, GiftIcon, HomeIcon, RocketIcon, SearchIcon, TwitchIcon, WalletIcon } from './icons';
+import { ArrowIcon, ChartIcon, CloseIcon, CoinsIcon, DocsIcon, GiftIcon, HomeIcon, RocketIcon, SearchIcon, SparkIcon, TwitchIcon, WalletIcon } from './icons';
 
 const nav = [
   { href: '/', label: 'Home', Icon: HomeIcon },
@@ -97,19 +97,4 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Analytics />
     </div>
   );
-
-  import {
-  ArrowIcon,
-  ChartIcon,
-  CloseIcon,
-  CoinsIcon,
-  DocsIcon,
-  GiftIcon,
-  HomeIcon,
-  RocketIcon,
-  SearchIcon,
-  SparkIcon,
-  TwitchIcon,
-  WalletIcon,
-} from './icons';
 }
