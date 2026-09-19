@@ -97,4 +97,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <Analytics />
     </div>
   );
+
+  import {
+  ArrowIcon,
+  ChartIcon,
+  CloseIcon,
+  CoinsIcon,
+  DocsIcon,
+  GiftIcon,
+  HomeIcon,
+  RocketIcon,
+  SearchIcon,
+  SparkIcon,
+  TwitchIcon,
+  WalletIcon,
+} from './icons';
 }
