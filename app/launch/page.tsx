@@ -69,6 +69,16 @@ export default function LaunchPage() {
       const data = encodeFunctionData({ abi: PONS_ABI, functionName: 'launchToken', args: [{ name: name.trim().slice(0, 64), symbol: ticker.trim().slice(0, 7), logo: DEFAULT_LOGO_URI, description: description.trim().slice(0, 240), socials: { twitter: x.trim().slice(0, 120), telegram: '', discord: '', website: website.trim().slice(0, 120), farcaster: '' }, feeWallet: wallet }, BigInt(0), BigInt(0), `0x${crypto.getRandomValues(new Uint8Array(32)).reduce((s, b) => s + b.toString(16).padStart(2, '0'), '')}`] });
       const hash = await ethereum.request({ method: 'eth_sendTransaction', params: [{ from: wallet, to: PONS_FACTORY, data, value: launchFee }] }) as string;
       setTxHash(hash);
+
+      let receipt: { status?: string } | null = null;
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 2_000));
+        receipt = await ethereum.request({ method: 'eth_getTransactionReceipt', params: [hash] }) as { status?: string } | null;
+        if (receipt) break;
+      }
+      if (!receipt) throw new Error('Transaction is still pending. Check MetaMask or the Robinhood Chain explorer for its status.');
+      if (receipt.status !== '0x1') throw new Error('The launch transaction failed on Robinhood Chain. No launch was recorded.');
+
       const { error: recordError } = await getSupabaseBrowserClient().from('launches').insert({
         tx_hash: hash,
         wallet_address: wallet,
@@ -80,7 +90,7 @@ export default function LaunchPage() {
         website: website.trim().slice(0, 120) || null,
         x_url: x.trim().slice(0, 120) || null,
         chain_id: ROBINHOOD_CHAIN_ID,
-        status: 'submitted',
+        status: 'confirmed',
       } as never);
       if (recordError) console.error('[v0] Could not save launch record:', recordError.message);
       setDone(true);
@@ -107,7 +117,7 @@ export default function LaunchPage() {
 
         <section className="form-section"><div className="form-section-title"><span>2</span><div><strong>The token</strong><small>Name, ticker, story</small></div></div><div className="form-row"><label className="field grow"><span>Name</span><input value={name} onChange={e=>setName(e.target.value)} placeholder="Creator Coin" required/></label><label className="field ticker-field"><span>Ticker</span><div className="ticker-input"><b>$</b><input value={ticker} onChange={e=>setTicker(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,7))} placeholder="COIN" required/></div></label></div><label className="field"><span>Description <em>optional</em></span><textarea value={description} onChange={e=>setDescription(e.target.value)} rows={4}/></label><label className="upload-zone"><input type="file" accept="image/*" onChange={upload}/>{image?<img src={image} alt="Token preview"/>:<><div className="upload-icon"><UploadIcon/></div><strong>Drop token art or click to choose</strong><span>PNG, JPEG or WebP · preview only; launches use the hosted logo</span></>}</label><div className="form-row"><label className="field grow"><span>Website <em>optional</em></span><input value={website} onChange={e=>setWebsite(e.target.value)} placeholder="https://"/></label><label className="field grow"><span>X <em>optional</em></span><input value={x} onChange={e=>setX(e.target.value)} placeholder="https://x.com/..."/></label></div></section>
 
-        <section className="form-section"><div className="form-section-title"><span>3</span><div><strong>Your first buy</strong><small>Keep it free</small></div></div><div className="buy-options">{['None'].map(v=><button type="button" key={v} className={firstBuy===v?'selected':''} onClick={()=>setFirstBuy(v)}>{v}</button>)}</div></section>
+        <section className="form-section"><div className="form-section-title"><span>3</span><div><strong>Your first buy</strong><small>Optional buyer-funded purchase</small></div></div><div className="buy-options">{['None'].map(v=><button type="button" key={v} className={firstBuy===v?'selected':''} onClick={()=>setFirstBuy(v)}>{v}</button>)}</div></section>
 
         <div className="launch-summary"><div><WalletIcon size={19}/><p><strong>Two actions in one flow.</strong><br/>Connect a wallet, confirm the token, then hand off launch execution to Pons.</p></div><button className="button primary full" type="submit" disabled={pending}>{pending ? 'Confirm transaction in MetaMask…' : 'Launch on Pons'}{!pending && <RocketIcon size={18}/>}</button></div>
       </form></Reveal>
