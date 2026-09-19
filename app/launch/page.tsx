@@ -5,6 +5,7 @@ import { encodeFunctionData, parseEther } from 'viem';
 import { Reveal } from '@/components/Reveal';
 import { CheckIcon, RocketIcon, TwitchIcon, UploadIcon, WalletIcon } from '@/components/icons';
 import { creators } from '@/lib/data';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 const ROBINHOOD_CHAIN_ID = '0x1237';
 const DEFAULT_LOGO_URI = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logotwitch-RVMQJk7F2Shbt9HBAVjuK0wVsmheoL.png';
@@ -68,6 +69,20 @@ export default function LaunchPage() {
       const data = encodeFunctionData({ abi: PONS_ABI, functionName: 'launchToken', args: [{ name: name.trim().slice(0, 64), symbol: ticker.trim().slice(0, 7), logo: DEFAULT_LOGO_URI, description: description.trim().slice(0, 240), socials: { twitter: x.trim().slice(0, 120), telegram: '', discord: '', website: website.trim().slice(0, 120), farcaster: '' }, feeWallet: wallet }, BigInt(0), BigInt(0), `0x${crypto.getRandomValues(new Uint8Array(32)).reduce((s, b) => s + b.toString(16).padStart(2, '0'), '')}`] });
       const hash = await ethereum.request({ method: 'eth_sendTransaction', params: [{ from: wallet, to: PONS_FACTORY, data, value: launchFee }] }) as string;
       setTxHash(hash);
+      const { error: recordError } = await getSupabaseBrowserClient().from('launches').insert({
+        tx_hash: hash,
+        wallet_address: wallet,
+        creator_handle: creator.trim().replace(/^@/, '').slice(0, 80),
+        token_name: name.trim().slice(0, 64),
+        token_symbol: ticker.trim().slice(0, 7),
+        description: description.trim().slice(0, 240) || null,
+        logo_uri: DEFAULT_LOGO_URI,
+        website: website.trim().slice(0, 120) || null,
+        x_url: x.trim().slice(0, 120) || null,
+        chain_id: ROBINHOOD_CHAIN_ID,
+        status: 'submitted',
+      } as never);
+      if (recordError) console.error('[v0] Could not save launch record:', recordError.message);
       setDone(true);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : 'Launch transaction was rejected or failed.');
