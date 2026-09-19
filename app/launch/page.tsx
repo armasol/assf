@@ -1,7 +1,7 @@
 'use client';
 
 import { ChangeEvent, useMemo, useState } from 'react';
-import { encodeFunctionData, parseEther } from 'viem';
+import { decodeEventLog, encodeFunctionData } from 'viem';
 import { Reveal } from '@/components/Reveal';
 import { CheckIcon, RocketIcon, TwitchIcon, UploadIcon, WalletIcon } from '@/components/icons';
 import { creators } from '@/lib/data';
@@ -24,6 +24,7 @@ const PONS_ABI = [
   { type: 'function', name: 'launchFee', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
   { type: 'function', name: 'launchConfigCount', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
   { type: 'function', name: 'dexConfigCount', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+  { type: 'event', name: 'TokenLaunched', anonymous: false, inputs: [{ name: 'token', type: 'address', indexed: true }, { name: 'creator', type: 'address', indexed: true }] },
   { type: 'function', name: 'launchToken', stateMutability: 'payable', inputs: [{ name: 'params', type: 'tuple', components: [
     { name: 'name', type: 'string' }, { name: 'symbol', type: 'string' }, { name: 'logo', type: 'string' }, { name: 'description', type: 'string' },
     { name: 'socials', type: 'tuple', components: [{ name: 'twitter', type: 'string' }, { name: 'telegram', type: 'string' }, { name: 'discord', type: 'string' }, { name: 'website', type: 'string' }, { name: 'farcaster', type: 'string' }] },
@@ -70,7 +71,7 @@ export default function LaunchPage() {
       const hash = await ethereum.request({ method: 'eth_sendTransaction', params: [{ from: wallet, to: PONS_FACTORY, data, value: launchFee }] }) as string;
       setTxHash(hash);
 
-      let receipt: { status?: string } | null = null;
+      let receipt: { status?: string; blockNumber?: string; logs?: Array<{ address: string; topics: string[]; data: string }> } | null = null;
       for (let attempt = 0; attempt < 60; attempt += 1) {
         await new Promise((resolve) => window.setTimeout(resolve, 2_000));
         receipt = await ethereum.request({ method: 'eth_getTransactionReceipt', params: [hash] }) as { status?: string } | null;
@@ -78,6 +79,21 @@ export default function LaunchPage() {
       }
       if (!receipt) throw new Error('Transaction is still pending. Check MetaMask or the Robinhood Chain explorer for its status.');
       if (receipt.status !== '0x1') throw new Error('The launch transaction failed on Robinhood Chain. No launch was recorded.');
+
+      let tokenAddress: string | null = null;
+      for (const log of receipt.logs ?? []) {
+        try {
+          const decoded = decodeEventLog({ abi: PONS_ABI, data: log.data as `0x${string}`, topics: log.topics as [`0x${string}`, ...`0x${string}`[]] });
+          if (decoded.eventName === 'TokenLaunched') {
+            const args = decoded.args as { token?: string };
+            tokenAddress = args.token ?? null;
+            break;
+          }
+        } catch {
+          // Ignore unrelated logs; the factory event is the source of truth.
+        }
+      }
+      if (!tokenAddress) throw new Error('The launch was confirmed, but Pons did not emit a token address. The launch was not recorded so it can be reconciled safely.');
 
       const { error: recordError } = await getSupabaseBrowserClient().from('launches').insert({
         tx_hash: hash,
@@ -90,6 +106,8 @@ export default function LaunchPage() {
         website: website.trim().slice(0, 120) || null,
         x_url: x.trim().slice(0, 120) || null,
         chain_id: ROBINHOOD_CHAIN_ID,
+        token_address: tokenAddress,
+        block_number: receipt.blockNumber ? BigInt(receipt.blockNumber).toString() : null,
         status: 'confirmed',
       } as never);
       if (recordError) console.error('[v0] Could not save launch record:', recordError.message);

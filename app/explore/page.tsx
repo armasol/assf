@@ -4,7 +4,7 @@ import { ExploreClient, type Token } from './ExploreClient';
 export default async function ExplorePage() {
   const supabase = getSupabaseServerClient();
   const [{ data: launches, error: launchError }, { data: trades, error: tradeError }, { data: marketRows, error: marketError }] = await Promise.all([
-    supabase.from('launches').select('id, token_name, token_symbol, creator_handle, logo_uri, status, created_at').order('created_at', { ascending: false }),
+    supabase.from('launches').select('id, token_name, token_symbol, creator_handle, logo_uri, token_address, status, created_at').order('created_at', { ascending: false }),
     supabase.from('trade_ledger').select('quantity, price_native').gte('occurred_at', new Date(Date.now() - 86400000).toISOString()),
     supabase.from('market_data').select('token_symbol, price_change_24h').order('price_change_24h', { ascending: false }).limit(1),
   ]);
@@ -25,6 +25,7 @@ export default async function ExplorePage() {
     volume: launch.status,
     change: new Date(launch.created_at).toLocaleDateString(),
     art: launch.logo_uri || launch.token_symbol.slice(0, 2).toUpperCase(),
+    tokenAddress: launch.token_address ?? undefined,
   }));
 
   return <ExploreClient tokens={tokens} tradeVolume={`${tradeVolume.toFixed(4)} RBH`} topMover={topMover} />;

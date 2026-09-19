@@ -8,6 +8,7 @@ export type Token = {
   change: string;
   positive?: boolean;
   art: string;
+  tokenAddress?: string;
 };
 
 export const tokens: Token[] = [];

@@ -13,7 +13,7 @@ export function StatCard({ label, value, note, accent = false }: { label: string
 export function TokenCard({ token }: { token: Token }) {
   return <div className="token-card interactive-card">
     <div className="token-art"><div className="rank-pill">#{token.rank}</div><div className="art-orb">{token.art}</div><div className="mc-pill">{token.marketCap} MC</div></div>
-    <div className="token-card-body"><div className="token-title"><strong>{token.ticker}</strong><span>{token.name}</span></div><div className="creator-row"><TwitchIcon size={15}/><span>@{token.creator}</span></div><div className="token-metrics"><span>24h vol <b>{token.volume}</b></span><span className={token.positive ? 'up' : 'down'}>{token.change}</span></div></div>
+    <div className="token-card-body"><div className="token-title"><strong>{token.ticker}</strong><span>{token.name}</span></div><div className="creator-row"><TwitchIcon size={15}/><span>@{token.creator}</span></div>{token.tokenAddress && <a className="contract-link" href={`https://robinhoodchain.blockscout.com/address/${token.tokenAddress}`} target="_blank" rel="noreferrer">{token.tokenAddress.slice(0, 6)}…{token.tokenAddress.slice(-4)}</a>}<div className="token-metrics"><span>24h vol <b>{token.volume}</b></span><span className={token.positive ? 'up' : 'down'}>{token.change}</span></div></div>
   </div>;
 }
 
