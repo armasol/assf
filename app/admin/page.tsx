@@ -3,11 +3,19 @@
 import { FormEvent, useState } from 'react'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 
+type TokenDraft = {
+  token_address: string
+  token_name: string
+  token_symbol: string
+  creator_handle: string
+  logo_uri: string
+}
+
 export default function AdminPage() {
   const supabase = getSupabaseBrowserClient()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [token, setToken] = useState({ token_address: '', token_name: '', token_symbol: '', creator_handle: '', logo_uri: '' })
+  const [token, setToken] = useState<TokenDraft>({ token_address: '', token_name: '', token_symbol: '', creator_handle: '', logo_uri: '' })
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -24,7 +32,7 @@ export default function AdminPage() {
     event.preventDefault()
     setLoading(true)
     setMessage('')
-    const { error } = await supabase.from('token_registry').insert({
+    const { error } = await (supabase.from('token_registry') as any).insert({
       ...token,
       logo_uri: token.logo_uri || null,
       token_address: token.token_address.trim(),
