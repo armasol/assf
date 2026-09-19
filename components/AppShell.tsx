@@ -84,7 +84,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="sidebar-foot">
           <div className="side-badge"><TwitchIcon size={18}/></div>
-          {!collapsed && <div><strong>subbed</strong><span>Creator fees on Twitch</span></div>}
+          {!collapsed && <div><strong>subbed</strong><span>Creator fees on Twitch</span><a className="social-link" href="https://x.com/trysubbed" target="_blank" rel="noreferrer">X <span className="sr-only">on X</span></a></div>}
         </div>
       </aside>
 
