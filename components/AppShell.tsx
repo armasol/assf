@@ -15,6 +15,7 @@ const nav = [
   { href: '/launch', label: 'Launch', Icon: RocketIcon },
   { href: '/get-paid', label: 'Get paid', Icon: GiftIcon },
   { href: '/docs', label: 'Docs', Icon: DocsIcon },
+  { href: '/admin', label: 'Admin', Icon: DocsIcon },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
