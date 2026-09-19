@@ -1,7 +1,6 @@
 'use client'
 
 import { FormEvent, useState } from 'react'
-import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 
 type TokenDraft = {
   token_address: string
@@ -12,36 +11,43 @@ type TokenDraft = {
 }
 
 export default function AdminPage() {
-  const supabase = getSupabaseBrowserClient()
-  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [authorized, setAuthorized] = useState(false)
   const [token, setToken] = useState<TokenDraft>({ token_address: '', token_name: '', token_symbol: '', creator_handle: '', logo_uri: '' })
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
-  async function signIn(event: FormEvent) {
+  async function unlock(event: FormEvent) {
     event.preventDefault()
     setLoading(true)
     setMessage('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const response = await fetch('/api/admin/tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password, action: 'unlock' }),
+    })
     setLoading(false)
-    setMessage(error ? 'Sign in failed. Check your credentials.' : 'Signed in. You can now add verified tokens.')
+    if (response.status === 401) {
+      setMessage('Incorrect admin password.')
+      return
+    }
+    setAuthorized(true)
+    setMessage('Admin access granted.')
   }
 
   async function addToken(event: FormEvent) {
     event.preventDefault()
     setLoading(true)
     setMessage('')
-    const { error } = await (supabase.from('token_registry') as any).insert({
-      ...token,
-      logo_uri: token.logo_uri || null,
-      token_address: token.token_address.trim(),
-      token_symbol: token.token_symbol.trim().toUpperCase(),
-      creator_handle: token.creator_handle.trim().replace(/^@/, ''),
+    const response = await fetch('/api/admin/tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password, token }),
     })
+    const result = await response.json()
     setLoading(false)
-    if (error) {
-      setMessage(error.code === '23505' ? 'That contract address is already registered.' : `Could not add token: ${error.message}`)
+    if (!response.ok) {
+      setMessage(result.error ?? 'Could not add token.')
       return
     }
     setToken({ token_address: '', token_name: '', token_symbol: '', creator_handle: '', logo_uri: '' })
@@ -50,15 +56,15 @@ export default function AdminPage() {
 
   return <main className="page-wrap content-page">
     <div className="page-header"><div><div className="eyebrow">ADMIN</div><h1>Token registry</h1><p>Add verified contract addresses found on Pons. Public pages only display records from this registry and confirmed launches.</p></div></div>
-    <section className="form-section" style={{ maxWidth: 620 }}>
-      <h2>Admin sign in</h2>
-      <form className="launch-form" onSubmit={signIn}>
-        <label className="field"><span>Email</span><input type="email" value={email} onChange={event => setEmail(event.target.value)} required /></label>
-        <label className="field"><span>Password</span><input type="password" value={password} onChange={event => setPassword(event.target.value)} required /></label>
-        <button className="button primary" disabled={loading}>{loading ? 'Working…' : 'Sign in'}</button>
+    {!authorized && <section className="form-section" style={{ maxWidth: 620 }}>
+      <h2>Admin access</h2>
+      <form className="launch-form" onSubmit={unlock}>
+        <label className="field"><span>Admin password</span><input type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete="current-password" required /></label>
+        <button className="button primary" disabled={loading}>{loading ? 'Checking…' : 'Continue'}</button>
       </form>
-    </section>
-    <section className="form-section" style={{ maxWidth: 620, marginTop: 18 }}>
+      {message && <p className="claim-result" role="status">{message}</p>}
+    </section>}
+    {authorized && <section className="form-section" style={{ maxWidth: 620, marginTop: 18 }}>
       <h2>Add verified token</h2>
       <form className="launch-form" onSubmit={addToken}>
         <label className="field"><span>Contract address</span><input value={token.token_address} onChange={event => setToken({ ...token, token_address: event.target.value })} placeholder="0x…" required /></label>
@@ -69,6 +75,6 @@ export default function AdminPage() {
         <button className="button primary" disabled={loading}>{loading ? 'Saving…' : 'Add token'}</button>
       </form>
       {message && <p className="claim-result" role="status">{message}</p>}
-    </section>
+    </section>}
   </main>
 }
