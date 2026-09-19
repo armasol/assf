@@ -1,7 +1,7 @@
 'use client';
 
 import { ChangeEvent, useMemo, useState } from 'react';
-import { encodeFunctionData, parseEther } from 'viem';
+import { decodeEventLog, encodeFunctionData } from 'viem';
 import { Reveal } from '@/components/Reveal';
 import { CheckIcon, RocketIcon, TwitchIcon, UploadIcon, WalletIcon } from '@/components/icons';
 import { creators } from '@/lib/data';
@@ -24,6 +24,7 @@ const PONS_ABI = [
   { type: 'function', name: 'launchFee', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
   { type: 'function', name: 'launchConfigCount', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
   { type: 'function', name: 'dexConfigCount', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }] },
+  { type: 'event', name: 'TokenLaunched', anonymous: false, inputs: [{ name: 'token', type: 'address', indexed: true }, { name: 'creator', type: 'address', indexed: true }] },
   { type: 'function', name: 'launchToken', stateMutability: 'payable', inputs: [{ name: 'params', type: 'tuple', components: [
     { name: 'name', type: 'string' }, { name: 'symbol', type: 'string' }, { name: 'logo', type: 'string' }, { name: 'description', type: 'string' },
     { name: 'socials', type: 'tuple', components: [{ name: 'twitter', type: 'string' }, { name: 'telegram', type: 'string' }, { name: 'discord', type: 'string' }, { name: 'website', type: 'string' }, { name: 'farcaster', type: 'string' }] },
@@ -70,7 +71,7 @@ export default function LaunchPage() {
       const hash = await ethereum.request({ method: 'eth_sendTransaction', params: [{ from: wallet, to: PONS_FACTORY, data, value: launchFee }] }) as string;
       setTxHash(hash);
 
-      let receipt: { status?: string } | null = null;
+      let receipt: { status?: string; blockNumber?: string; logs?: Array<{ address: string; topics: string[]; data: string }> } | null = null;
       for (let attempt = 0; attempt < 60; attempt += 1) {
         await new Promise((resolve) => window.setTimeout(resolve, 2_000));
         receipt = await ethereum.request({ method: 'eth_getTransactionReceipt', params: [hash] }) as { status?: string } | null;
@@ -78,6 +79,21 @@ export default function LaunchPage() {
       }
       if (!receipt) throw new Error('Transaction is still pending. Check MetaMask or the Robinhood Chain explorer for its status.');
       if (receipt.status !== '0x1') throw new Error('The launch transaction failed on Robinhood Chain. No launch was recorded.');
+
+      let tokenAddress: string | null = null;
+      for (const log of receipt.logs ?? []) {
+        try {
+          const decoded = decodeEventLog({ abi: PONS_ABI, data: log.data as `0x${string}`, topics: log.topics as [`0x${string}`, ...`0x${string}`[]] });
+          if (decoded.eventName === 'TokenLaunched') {
+            const args = decoded.args as { token?: string };
+            tokenAddress = args.token ?? null;
+            break;
+          }
+        } catch {
+          // Ignore unrelated logs; the factory event is the source of truth.
+        }
+      }
+      if (!tokenAddress) throw new Error('The launch was confirmed, but Pons did not emit a token address. The launch was not recorded so it can be reconciled safely.');
 
       const { error: recordError } = await getSupabaseBrowserClient().from('launches').insert({
         tx_hash: hash,
@@ -90,6 +106,8 @@ export default function LaunchPage() {
         website: website.trim().slice(0, 120) || null,
         x_url: x.trim().slice(0, 120) || null,
         chain_id: ROBINHOOD_CHAIN_ID,
+        token_address: tokenAddress,
+        block_number: receipt.blockNumber ? BigInt(receipt.blockNumber).toString() : null,
         status: 'confirmed',
       } as never);
       if (recordError) console.error('[v0] Could not save launch record:', recordError.message);
@@ -122,7 +140,7 @@ export default function LaunchPage() {
         <div className="launch-summary"><div><WalletIcon size={19}/><p><strong>Two actions in one flow.</strong><br/>Connect a wallet, confirm the token, then hand off launch execution to Pons.</p></div><button className="button primary full" type="submit" disabled={pending}>{pending ? 'Confirm transaction in MetaMask…' : 'Launch on Pons'}{!pending && <RocketIcon size={18}/>}</button></div>
       </form></Reveal>
 
-      <Reveal delay={80}><aside className="launch-preview-wrap"><div className="preview-label">LIVE PREVIEW</div><div className="token-preview-card"><div className="preview-art">{image?<img src={image} alt="Token art"/>:<img src={DEFAULT_LOGO_URI} alt="Tipped token logo"/>}<div className="preview-live">PONS</div></div><div className="preview-body"><div className="profile-pill"><div className="avatar tiny">{selected.initials}</div><div><strong>{selected.name}</strong><span>@{selected.handle}</span></div><TwitchIcon size={17}/></div><h3>${ticker || 'TOKEN'} <span>{name || 'Token name'}</span></h3><p>{description || 'Your token description appears here.'}</p><div className="preview-metrics"><div><span>Creator</span><strong>@{selected.handle}</strong></div><div><span>Launch</span><strong>Pons</strong></div></div></div></div><div className="when-launch"><span className="mini-label">WHEN YOU LAUNCH</span><div><b>1</b><p>The coin metadata is prepared with the Twitch creator attached.</p></div><div><b>2</b><p>Pons handles the launch step on Robinhood Chain.</p></div><div><b>3</b><p>The creator-linked routing becomes visible across the front-end.</p></div></div></aside></Reveal>
+      <Reveal delay={80}><aside className="launch-preview-wrap"><div className="preview-label">LIVE PREVIEW</div><div className="token-preview-card"><div className="preview-art">{image?<img src={image} alt="Token art"/>:<img src={DEFAULT_LOGO_URI} alt="Subbed token logo"/>}<div className="preview-live">PONS</div></div><div className="preview-body"><div className="profile-pill"><div className="avatar tiny">{selected.initials}</div><div><strong>{selected.name}</strong><span>@{selected.handle}</span></div><TwitchIcon size={17}/></div><h3>${ticker || 'TOKEN'} <span>{name || 'Token name'}</span></h3><p>{description || 'Your token description appears here.'}</p><div className="preview-metrics"><div><span>Creator</span><strong>@{selected.handle}</strong></div><div><span>Launch</span><strong>Pons</strong></div></div></div></div><div className="when-launch"><span className="mini-label">WHEN YOU LAUNCH</span><div><b>1</b><p>The coin metadata is prepared with the Twitch creator attached.</p></div><div><b>2</b><p>Pons handles the launch step on Robinhood Chain.</p></div><div><b>3</b><p>The creator-linked routing becomes visible across the front-end.</p></div></div></aside></Reveal>
     </div>
     {done && <div className="modal-backdrop"><div className="success-modal"><div className="success-icon"><CheckIcon size={34}/></div><h2>Launch transaction submitted.</h2><p>${ticker} was submitted to Pons on Robinhood Chain Mainnet. Confirm the transaction in MetaMask, then check the explorer for its final status.</p>{txHash&&<a className="button ghost" href={`${ROBINHOOD_CHAIN.blockExplorerUrls[0]}/tx/${txHash}`} target="_blank" rel="noreferrer">View transaction</a>}<button className="button primary" onClick={()=>setDone(false)}>Back to launch</button></div></div>}
   </div>;

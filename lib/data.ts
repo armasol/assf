@@ -8,16 +8,17 @@ export type Token = {
   change: string;
   positive?: boolean;
   art: string;
+  tokenAddress?: string;
 };
 
 export const tokens: Token[] = [];
 
 export const creators = [
-  { handle: 'kaicenat', name: 'Kai Cenat', followers: '13.2M', fees: '$1,284.22', initials: 'KC' },
-  { handle: 'lunalive', name: 'Luna Live', followers: '5.4M', fees: '$864.10', initials: 'LL' },
-  { handle: 'riftrunner', name: 'Rift Runner', followers: '3.1M', fees: '$612.44', initials: 'RR' },
-  { handle: 'novastreams', name: 'Nova Streams', followers: '2.6M', fees: '$498.08', initials: 'NS' },
-  { handle: 'ggsquad', name: 'GG Squad', followers: '1.9M', fees: '$341.20', initials: 'GG' },
+  { handle: 'kaicenat', name: 'Kai Cenat', followers: '13.2M', initials: 'KC' },
+  { handle: 'lunalive', name: 'Luna Live', followers: '5.4M', initials: 'LL' },
+  { handle: 'riftrunner', name: 'Rift Runner', followers: '3.1M', initials: 'RR' },
+  { handle: 'novastreams', name: 'Nova Streams', followers: '2.6M', initials: 'NS' },
+  { handle: 'ggsquad', name: 'GG Squad', followers: '1.9M', initials: 'GG' },
 ];
 
 export const receipts = [
