@@ -37,9 +37,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return [...tokenResults, ...creatorResults].slice(0, 6);
   }, [query]);
 
-  const connect = () => {
-    setWallet(v => !v);
-    setToast(wallet ? 'Wallet disconnected' : 'Demo wallet connected');
+  const connect = async () => {
+    const ethereum = (window as Window & { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum;
+    if (!ethereum) {
+      setToast('Install MetaMask to connect');
+      window.setTimeout(() => setToast(''), 2200);
+      return;
+    }
+
+    if (wallet) {
+      setWallet(false);
+      setToast('Wallet disconnected');
+      window.setTimeout(() => setToast(''), 2200);
+      return;
+    }
+
+    try {
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' }) as string[];
+      if (accounts[0]) {
+        setWallet(true);
+        setToast('MetaMask connected');
+      }
+    } catch {
+      setToast('Wallet connection cancelled');
+    }
     window.setTimeout(() => setToast(''), 2200);
   };
 

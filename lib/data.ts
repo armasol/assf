@@ -10,16 +10,7 @@ export type Token = {
   art: string;
 };
 
-export const tokens: Token[] = [
-  { rank: 1, ticker: '$KAI', name: 'Kai Coin', creator: 'kaicenat', marketCap: '$28.6K', volume: '$334K', change: '+35.5%', positive: true, art: 'KC' },
-  { rank: 2, ticker: '$LUNA', name: 'Luna Live', creator: 'lunalive', marketCap: '$19.4K', volume: '$181K', change: '+18.7%', positive: true, art: 'LL' },
-  { rank: 3, ticker: '$CLIP', name: 'Clip Farm', creator: 'clipfarm', marketCap: '$16.8K', volume: '$128K', change: '-8.9%', art: 'CF' },
-  { rank: 4, ticker: '$RIFT', name: 'Rift Run', creator: 'riftrunner', marketCap: '$14.3K', volume: '$111K', change: '+12.4%', positive: true, art: 'RR' },
-  { rank: 5, ticker: '$NOVA', name: 'Nova Chat', creator: 'novastreams', marketCap: '$11.8K', volume: '$92K', change: '+6.1%', positive: true, art: 'NC' },
-  { rank: 6, ticker: '$GGS', name: 'Good Games', creator: 'ggsquad', marketCap: '$10.9K', volume: '$88K', change: '-3.7%', art: 'GG' },
-  { rank: 7, ticker: '$VIBE', name: 'Vibe Check', creator: 'vibecaster', marketCap: '$9.7K', volume: '$77K', change: '+21.3%', positive: true, art: 'VC' },
-  { rank: 8, ticker: '$RAID', name: 'Raid Party', creator: 'raidparty', marketCap: '$8.9K', volume: '$65K', change: '+9.5%', positive: true, art: 'RP' },
-];
+export const tokens: Token[] = [];
 
 export const creators = [
   { handle: 'kaicenat', name: 'Kai Cenat', followers: '13.2M', fees: '$1,284.22', initials: 'KC' },
