@@ -70,8 +70,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-top">
           <Link href="/" className="brand" aria-label="Home">
-            <img className="brand-mark" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logotwitch-RVMQJk7F2Shbt9HBAVjuK0wVsmheoL.png" alt="tipped logo" />
-            {!collapsed && <span className="brand-word">tipped</span>}
+            <img className="brand-mark" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logotwitch-RVMQJk7F2Shbt9HBAVjuK0wVsmheoL.png" alt="subbed logo" />
+            {!collapsed && <span className="brand-word">subbed</span>}
           </Link>
           <button className="icon-button collapse-button" onClick={() => setCollapsed(v => !v)} aria-label="Toggle sidebar">
             <span className={collapsed ? 'chevron-flip' : ''}>‹‹</span>
@@ -85,7 +85,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="sidebar-foot">
           <div className="side-badge"><TwitchIcon size={18}/></div>
-          {!collapsed && <div><strong>tipped</strong><span>Creator fees on Twitch</span></div>}
+          {!collapsed && <div><strong>subbed</strong><span>Creator fees on Twitch</span></div>}
         </div>
       </aside>
 
