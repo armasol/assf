@@ -69,7 +69,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className={`sidebar ${mobileOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-top">
           <Link href="/" className="brand" aria-label="Home">
-            <div className="brand-mark">P</div>
+            <img className="brand-mark" src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logotwitch-RVMQJk7F2Shbt9HBAVjuK0wVsmheoL.png" alt="tipped logo" />
             {!collapsed && <span className="brand-word">tipped</span>}
           </Link>
           <button className="icon-button collapse-button" onClick={() => setCollapsed(v => !v)} aria-label="Toggle sidebar">

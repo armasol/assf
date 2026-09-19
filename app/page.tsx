@@ -1,10 +1,36 @@
 import Link from 'next/link';
-import { creators, receipts, tokens } from '@/lib/data';
+import { creators } from '@/lib/data';
+import { getSupabaseServerClient } from '@/lib/supabase/server';
 import { Reveal } from '@/components/Reveal';
 import { SectionTitle, TokenCard } from '@/components/ui';
 import { ArrowIcon, CheckIcon, GiftIcon, RocketIcon, SparkIcon, TwitchIcon } from '@/components/icons';
 
-export default function HomePage() {
+export default async function HomePage() {
+  const { data: launches, error } = await getSupabaseServerClient()
+    .from('launches')
+    .select('id, tx_hash, creator_handle, token_name, token_symbol, description, logo_uri, status, created_at')
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) console.error('[v0] Could not load launch stats:', error.message);
+
+  const liveTokens = (launches ?? []).map((launch, index) => ({
+    rank: index + 1,
+    ticker: `$${launch.token_symbol}`,
+    name: launch.token_name,
+    creator: launch.creator_handle,
+    marketCap: 'On-chain',
+    volume: launch.status,
+    change: 'Submitted',
+    art: launch.logo_uri,
+  }));
+  const displayedReceipts = (launches ?? []).slice(0, 6).map((launch) => ({
+    id: launch.id.slice(0, 8).toUpperCase(),
+    handle: `@${launch.creator_handle}`,
+    amount: launch.status,
+    time: new Date(launch.created_at).toLocaleDateString(),
+    lifetime: launch.token_symbol,
+  }));
+
   return <div className="home-page page-wrap">
     <section className="hero">
       <Reveal>
@@ -31,11 +57,11 @@ export default function HomePage() {
       </Reveal>
     </section>
 
-    <Reveal><section className="home-section"><SectionTitle title="Top tokens" link="Explore all"/><div className="token-grid four">{tokens.slice(0,4).map(t => <TokenCard key={t.ticker} token={t}/>)}</div></section></Reveal>
+    <Reveal><section className="home-section"><SectionTitle title="Top tokens" link="Explore all"/><div className="token-grid four">{liveTokens.length ? liveTokens.slice(0,4).map(t => <TokenCard key={t.ticker} token={t}/>) : <p className="empty-state">No launches yet. Be the first to launch a token.</p>}</div></section></Reveal>
 
     <Reveal><section className="split-section home-section">
       <div><SectionTitle title="Top Twitch creators" link="View all" href="/analytics"/><div className="creator-list">{creators.slice(0,4).map((c,i)=><div className="creator-item" key={c.handle}><span className="creator-rank">{i+1}</span><div className="avatar">{c.initials}</div><div className="creator-main"><strong>{c.name}</strong><span>@{c.handle} · {c.followers} followers</span></div><div className="creator-fee"><strong>{c.fees}</strong><span>fees</span></div></div>)}</div></div>
-      <div><SectionTitle title="Recent creator fees" link="Payments" href="/payments"/><div className="receipt-list compact">{receipts.slice(0,4).map(r=><div className="receipt-row" key={r.id}><div className="gift-icon"><GiftIcon size={17}/></div><div><strong>{r.handle}</strong><span>{r.time}</span></div><strong>{r.amount}</strong></div>)}</div></div>
+      <div><SectionTitle title="Recent creator fees" link="Payments" href="/payments"/><div className="receipt-list compact">{displayedReceipts.length ? displayedReceipts.slice(0,4).map(r=><div className="receipt-row" key={r.id}><div className="gift-icon"><GiftIcon size={17}/></div><div><strong>{r.handle}</strong><span>{r.time}</span></div><strong>{r.amount}</strong></div>) : <p className="empty-state">No fee activity recorded yet.</p>}</div></div>
     </section></Reveal>
 
     <Reveal><section className="cta-band"><div className="cta-glow"/><div><div className="eyebrow"><SparkIcon size={14}/>CREATOR-LINKED BY DEFAULT</div><h2>A launchpad built around the streamer.</h2><p>Keep the flow simple: pick the creator, build the token, launch it on Pons.</p></div><Link href="/launch" className="button light">Start a launch<ArrowIcon size={18}/></Link></section></Reveal>
